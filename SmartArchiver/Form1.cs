@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using SmartArchiver.Compression;
 
 namespace SmartArchiver
 {
@@ -56,11 +57,52 @@ namespace SmartArchiver
                 if (optionsForm.ShowDialog() == DialogResult.OK)
                 {
                     string archiveName = optionsForm.ArchiveName;
-                    //string password = chkEncrypt.Checked ? optionsForm.Password : null;
+                    var files = listBox1.Items.Cast<string>().ToList();
+                    var tokenSource = new System.Threading.CancellationTokenSource();
+                    try
+                    {
+                        double ratio = HuffmanArchive.CompressFiles(files, archiveName + ".huff", tokenSource.Token);
+                        MessageBox.Show($"Compression complete. Ratio: {ratio:F2}%", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        MessageBox.Show("Compression canceled.");
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
 
-
-                    // Call your compression logic here:
-                    //CompressFiles(archiveName, password);
+        private void button2_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog ofd = new OpenFileDialog())
+            {
+                ofd.Filter = "Huffman Archive|*.huff";
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    using (FolderBrowserDialog fbd = new FolderBrowserDialog())
+                    {
+                        if (fbd.ShowDialog() == DialogResult.OK)
+                        {
+                            var tokenSource = new System.Threading.CancellationTokenSource();
+                            try
+                            {
+                                HuffmanArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, tokenSource.Token);
+                                MessageBox.Show("Extraction complete.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                MessageBox.Show("Extraction canceled.");
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
+                        }
+                    }
                 }
             }
         }

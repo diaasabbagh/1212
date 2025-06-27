@@ -30,12 +30,7 @@ namespace SmartArchiver
         private void button1_Click(object sender, EventArgs e)
         {
 
-            if (comboBox1.SelectedIndex == 0)
-            {
-                warningLabel.Text = "Please select compression method";
-                warningLabel.Visible = true;
-                return;
-            }
+
 
             if (string.IsNullOrWhiteSpace(ArchiveName))
             {
