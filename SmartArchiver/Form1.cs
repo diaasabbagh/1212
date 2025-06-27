@@ -76,6 +76,15 @@ namespace SmartArchiver
             }
         }
 
+        private void button4_Click(object sender, EventArgs e)
+        {
+            var selectedItems = listBox1.SelectedItems.Cast<object>().ToList();
+            foreach (var item in selectedItems)
+            {
+                listBox1.Items.Remove(item);
+            }
+        }
+
         private void button2_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog ofd = new OpenFileDialog())
