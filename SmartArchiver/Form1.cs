@@ -61,7 +61,15 @@ namespace SmartArchiver
                     var tokenSource = new System.Threading.CancellationTokenSource();
                     try
                     {
-                        double ratio = HuffmanArchive.CompressFiles(files, archiveName + ".huff", tokenSource.Token);
+                        double ratio;
+                        if (optionsForm.SelectedMethod == "Huffman")
+                        {
+                            ratio = HuffmanArchive.CompressFiles(files, archiveName + ".huff", tokenSource.Token);
+                        }
+                        else
+                        {
+                            ratio = ShannonFanoArchive.CompressFiles(files, archiveName + ".shfn", tokenSource.Token);
+                        }
                         MessageBox.Show($"Compression complete. Ratio: {ratio:F2}%", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     catch (OperationCanceledException)
@@ -89,7 +97,7 @@ namespace SmartArchiver
         {
             using (OpenFileDialog ofd = new OpenFileDialog())
             {
-                ofd.Filter = "Huffman Archive|*.huff";
+                ofd.Filter = "Archive Files|*.huff;*.shfn";
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
                     using (FolderBrowserDialog fbd = new FolderBrowserDialog())
@@ -99,7 +107,15 @@ namespace SmartArchiver
                             var tokenSource = new System.Threading.CancellationTokenSource();
                             try
                             {
-                                HuffmanArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, tokenSource.Token);
+                                string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();
+                                if (ext == ".huff")
+                                {
+                                    HuffmanArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, tokenSource.Token);
+                                }
+                                else
+                                {
+                                    ShannonFanoArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, tokenSource.Token);
+                                }
                                 MessageBox.Show("Extraction complete.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             }
                             catch (OperationCanceledException)
