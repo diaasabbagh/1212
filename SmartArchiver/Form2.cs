@@ -15,11 +15,13 @@ namespace SmartArchiver
     {
         public string ArchiveName => archiveNameBox.Text.Trim();
         public string Password => passwordBox.Text;
+        public string SelectedMethod => comboBox1.SelectedItem as string;
 
         public Form2()
         {
             InitializeComponent();
             warningLabel.Visible = false;
+            comboBox1.SelectedIndex = 0;
         }
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
