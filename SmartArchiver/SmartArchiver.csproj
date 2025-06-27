@@ -64,6 +64,10 @@
     <Compile Include="Compression\HuffmanTree.cs" />
     <Compile Include="Compression\HuffmanCodec.cs" />
     <Compile Include="Compression\HuffmanArchive.cs" />
+    <Compile Include="Compression\ShannonFanoNode.cs" />
+    <Compile Include="Compression\ShannonFanoTree.cs" />
+    <Compile Include="Compression\ShannonFanoCodec.cs" />
+    <Compile Include="Compression\ShannonFanoArchive.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
