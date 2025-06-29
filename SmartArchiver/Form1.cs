@@ -105,15 +105,15 @@ namespace SmartArchiver
                         if (fbd.ShowDialog() == DialogResult.OK)
                         {
                             var tokenSource = new System.Threading.CancellationTokenSource();
-                            List<string> filenames = new List<string>();
-                            using (var fs = new FileStream(ofd.FileName, FileMode.Open, FileAccess.Read))
-                            using (var reader = new BinaryReader(fs))
+                            List<string> filenames;
+                            string extList = Path.GetExtension(ofd.FileName).ToLowerInvariant();
+                            if (extList == ".huff")
                             {
-                                int count = reader.ReadInt32();
-                                for (int i = 0; i < count; i++)
-                                {
-                                    filenames.Add(reader.ReadString());
-                                }
+                                filenames = HuffmanArchive.GetFileNames(ofd.FileName);
+                            }
+                            else
+                            {
+                                filenames = ShannonFanoArchive.GetFileNames(ofd.FileName);
                             }
                             using (var optionsForm = new Form3()) {
                                 optionsForm.LoadFileNames(filenames);
@@ -145,10 +145,9 @@ namespace SmartArchiver
                                     }
                                     else
                                     {
-                                        // Extract only the selected file from the ListBox
-                                        if (listBox1.SelectedItem != null)
+                                        string selectedFile = optionsForm.SelectedFile;
+                                        if (!string.IsNullOrEmpty(selectedFile))
                                         {
-                                            string selectedFile = listBox1.SelectedItem.ToString();
                                             try
                                             {
                                                 string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();

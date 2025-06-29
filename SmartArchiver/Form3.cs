@@ -23,6 +23,7 @@ namespace SmartArchiver
         }
 
         public string SelectedAction{get; private set;}
+        public string SelectedFile => listBox1.SelectedItem as string;
         private void button1_Click(object sender, EventArgs e)
         {
             this.DialogResult = DialogResult.OK;

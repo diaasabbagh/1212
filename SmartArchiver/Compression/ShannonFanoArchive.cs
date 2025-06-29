@@ -64,7 +64,24 @@ namespace SmartArchiver.Compression
                 }
             }
         }
-
+        public static List<string> GetFileNames(string archivePath)
+        {
+            var names = new List<string>();
+            using (var fs = new FileStream(archivePath, FileMode.Open, FileAccess.Read))
+            using (var reader = new BinaryReader(fs))
+            {
+                int count = reader.ReadInt32();
+                for (int i = 0; i < count; i++)
+                {
+                    long posBefore = fs.Position;
+                    string name = reader.ReadString();
+                    names.Add(name);
+                    fs.Position = posBefore;
+                    SkipEntry(reader);
+                }
+            }
+            return names;
+        }
         private static void SkipEntry(BinaryReader reader)
         {
             reader.ReadString();
