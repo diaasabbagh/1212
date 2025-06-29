@@ -8,17 +8,17 @@ namespace SmartArchiver.Compression
 {
     internal static class HuffmanArchive
     {
-        public static double CompressFiles(IEnumerable<string> filePaths, string archivePath, CancellationToken token)
+        public static double CompressFiles(IEnumerable<(string path, string entryName)> files, string archivePath, CancellationToken token)
         {
-            var allFiles = filePaths.ToList();
-            long originalTotal = allFiles.Sum(f => new FileInfo(f).Length);
+            var allFiles = files.ToList();
+            long originalTotal = allFiles.Sum(f => new FileInfo(f.path).Length);
             using (var fs = new FileStream(archivePath, FileMode.Create, FileAccess.Write))
             using (var writer = new BinaryWriter(fs))
             {
                 writer.Write(allFiles.Count);
                 foreach (var file in allFiles)
                 {
-                    HuffmanCodec.CompressFile(file, writer, token);
+                    HuffmanCodec.CompressFile(file.path, file.entryName, writer, token);
                 }
             }
             long archiveSize = new FileInfo(archivePath).Length;

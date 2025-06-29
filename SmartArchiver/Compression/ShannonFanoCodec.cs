@@ -5,7 +5,7 @@ namespace SmartArchiver.Compression
 {
     internal static class ShannonFanoCodec
     {
-        public static void CompressFile(string inputPath, BinaryWriter writer, System.Threading.CancellationToken token)
+        public static void CompressFile(string inputPath, string entryName, BinaryWriter writer, System.Threading.CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             byte[] data = File.ReadAllBytes(inputPath);
@@ -13,7 +13,7 @@ namespace SmartArchiver.Compression
             var freq = tree.Build(data);
             var compressed = tree.Encode(data, out int bitLength);
 
-            writer.Write(Path.GetFileName(inputPath));
+            writer.Write(entryName);
             writer.Write(data.Length);
             writer.Write(freq.Count);
             foreach (var kv in freq)
@@ -49,6 +49,11 @@ namespace SmartArchiver.Compression
             var tree = new ShannonFanoTree();
             byte[] data = tree.Decode(compData, bitLength, freq);
             string outPath = Path.Combine(outputDirectory, name);
+            string dir = Path.GetDirectoryName(outPath);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
             File.WriteAllBytes(outPath, data);
         }
     }

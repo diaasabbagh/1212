@@ -57,7 +57,8 @@ namespace SmartArchiver
                 if (optionsForm.ShowDialog() == DialogResult.OK)
                 {
                     string archiveName = optionsForm.ArchiveName;
-                    var files = listBox1.Items.Cast<string>().ToList();
+                    var selectedItems = listBox1.Items.Cast<string>().ToList();
+                    var files = ExpandFileList(selectedItems);
                     var tokenSource = new System.Threading.CancellationTokenSource();
                     try
                     {
@@ -187,6 +188,40 @@ namespace SmartArchiver
         private void warningLabel1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
+            {
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    listBox1.Items.Add(dialog.SelectedPath);
+                }
+            }
+        }
+
+        private List<(string path, string entryName)> ExpandFileList(List<string> items)
+        {
+            var result = new List<(string path, string entryName)>();
+            foreach (var item in items)
+            {
+                if (Directory.Exists(item))
+                {
+                    string baseName = Path.GetFileName(item);
+                    foreach (var file in Directory.GetFiles(item, "*", SearchOption.AllDirectories))
+                    {
+                        string relativePart = file.Substring(item.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                        string relative = Path.Combine(baseName, relativePart);
+                        result.Add((file, relative));
+                    }
+                }
+                else if (File.Exists(item))
+                {
+                    result.Add((item, Path.GetFileName(item)));
+                }
+            }
+            return result;
         }
     }
 }
