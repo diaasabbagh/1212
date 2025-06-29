@@ -105,26 +105,79 @@ namespace SmartArchiver
                         if (fbd.ShowDialog() == DialogResult.OK)
                         {
                             var tokenSource = new System.Threading.CancellationTokenSource();
-                            try
+                            List<string> filenames = new List<string>();
+                            using (var fs = new FileStream(ofd.FileName, FileMode.Open, FileAccess.Read))
+                            using (var reader = new BinaryReader(fs))
                             {
-                                string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();
-                                if (ext == ".huff")
+                                int count = reader.ReadInt32();
+                                for (int i = 0; i < count; i++)
                                 {
-                                    HuffmanArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, tokenSource.Token);
+                                    filenames.Add(reader.ReadString());
                                 }
-                                else
+                            }
+                            using (var optionsForm = new Form3()) {
+                                optionsForm.LoadFileNames(filenames);
+                                if (optionsForm.ShowDialog() == DialogResult.OK)
                                 {
-                                    ShannonFanoArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, tokenSource.Token);
+                                    string action = optionsForm.SelectedAction;
+                                    if(action == "ExtractAll") {
+                                        try
+                                        {
+                                            string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();
+                                            if (ext == ".huff")
+                                            {
+                                                HuffmanArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, tokenSource.Token);
+                                            }
+                                            else
+                                            {
+                                                ShannonFanoArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, tokenSource.Token);
+                                            }
+                                            MessageBox.Show("Extraction complete.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                        }
+                                        catch (OperationCanceledException)
+                                        {
+                                            MessageBox.Show("Extraction canceled.");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // Extract only the selected file from the ListBox
+                                        if (listBox1.SelectedItem != null)
+                                        {
+                                            string selectedFile = listBox1.SelectedItem.ToString();
+                                            try
+                                            {
+                                                string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();
+                                                if (ext == ".huff")
+                                                {
+                                                    HuffmanArchive.ExtractFile(ofd.FileName, selectedFile, fbd.SelectedPath, tokenSource.Token);
+                                                }
+
+                                                else
+                                                {
+                                                    ShannonFanoArchive.ExtractFile(ofd.FileName, selectedFile, fbd.SelectedPath, tokenSource.Token);
+                                                }
+                                                MessageBox.Show("Extraction complete.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                            }
+                                            catch (OperationCanceledException)
+                                            {
+                                                MessageBox.Show("Extraction canceled.");
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            MessageBox.Show("Please select a file to extract.", "No file selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                        }
+                                    }
                                 }
-                                MessageBox.Show("Extraction complete.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                MessageBox.Show("Extraction canceled.");
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
                         }
                     }
