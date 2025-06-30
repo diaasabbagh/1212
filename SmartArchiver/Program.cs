@@ -25,8 +25,7 @@ namespace SmartArchiver
                         string target = args[1];
                         var files = FileUtils.ExpandFileList(new List<string> { target });
                         string archive = target + ".huff";
-                        HuffmanArchive.CompressFiles(files, archive, CancellationToken.None);
-                        return;
+                        HuffmanArchive.CompressFiles(files, archive, CancellationToken.None, null);                        return;
                     }
                     else if (cmd == "cli-decompress" && args.Length == 2)
                     {
@@ -34,13 +33,11 @@ namespace SmartArchiver
                         string outDir = Path.GetDirectoryName(Path.GetFullPath(archive)) ?? ".";
                         if (archive.EndsWith(".huff", StringComparison.OrdinalIgnoreCase))
                         {
-                            HuffmanArchive.ExtractAll(archive, outDir, CancellationToken.None);
-                            return;
+                            HuffmanArchive.ExtractAll(archive, outDir, CancellationToken.None, null);                            return;
                         }
                         else if (archive.EndsWith(".shfn", StringComparison.OrdinalIgnoreCase))
                         {
-                            ShannonFanoArchive.ExtractAll(archive, outDir, CancellationToken.None);
-                            return;
+                       ShannonFanoArchive.ExtractAll(archive, outDir, CancellationToken.None, null);                            return;
                         }
                     }
                     else
