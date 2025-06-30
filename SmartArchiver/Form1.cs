@@ -16,11 +16,19 @@ namespace SmartArchiver
     public partial class Form1 : Form
     {
         private CancellationTokenSource _tokenSource;
-        public Form1()
+        public Form1(IEnumerable<string> startupFiles = null)
         {
             InitializeComponent();
             listBox1.HorizontalScrollbar = true;
             warningLabel1.Visible = false;
+
+            if (startupFiles != null)
+            {
+                foreach (var file in startupFiles)
+                {
+                    listBox1.Items.Add(file);
+                }
+            }
         }
 
 
@@ -60,7 +68,7 @@ namespace SmartArchiver
                 {
                     string archiveName = optionsForm.ArchiveName;
                     var selectedItems = listBox1.Items.Cast<string>().ToList();
-                    var files = ExpandFileList(selectedItems);
+                    var files = FileUtils.ExpandFileList(selectedItems);
                     _tokenSource = new CancellationTokenSource();
                     cancelButton.Enabled = true;
                     try
@@ -220,29 +228,6 @@ namespace SmartArchiver
         private void cancelButton_Click(object sender, EventArgs e)
         {
             _tokenSource?.Cancel();
-        }
-
-        private List<(string path, string entryName)> ExpandFileList(List<string> items)
-        {
-            var result = new List<(string path, string entryName)>();
-            foreach (var item in items)
-            {
-                if (Directory.Exists(item))
-                {
-                    string baseName = Path.GetFileName(item);
-                    foreach (var file in Directory.GetFiles(item, "*", SearchOption.AllDirectories))
-                    {
-                        string relativePart = file.Substring(item.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                        string relative = Path.Combine(baseName, relativePart);
-                        result.Add((file, relative));
-                    }
-                }
-                else if (File.Exists(item))
-                {
-                    result.Add((item, Path.GetFileName(item)));
-                }
-            }
-            return result;
         }
     }
 }
