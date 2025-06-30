@@ -7,12 +7,12 @@ namespace SmartArchiver.Compression
 {
     internal static class ShannonFanoArchive
     {
-        public static double CompressFiles(IEnumerable<(string path, string entryName)> files, string archivePath, CancellationToken token)
+        public static double CompressFiles(IEnumerable<(string path, string entryName)> files, string archivePath, CancellationToken token, string password = null)
         {
             var allFiles = files.ToList();
             long originalTotal = allFiles.Sum(f => new FileInfo(f.path).Length);
-            using (var fs = new FileStream(archivePath, FileMode.Create, FileAccess.Write))
-            using (var writer = new BinaryWriter(fs))
+            using (var ms = new MemoryStream())
+            using (var writer = new BinaryWriter(ms))
             {
                 writer.Write(allFiles.Count);
                 foreach (var file in allFiles)
@@ -20,6 +20,8 @@ namespace SmartArchiver.Compression
                     token.ThrowIfCancellationRequested();
                     ShannonFanoCodec.CompressFile(file.path, file.entryName, writer, token);
                 }
+                writer.Flush();
+                EncryptionUtils.WriteData(archivePath, ms.ToArray(), password);
             }
             long archiveSize = new FileInfo(archivePath).Length;
             if (archiveSize == 0) return 0;
@@ -27,10 +29,11 @@ namespace SmartArchiver.Compression
             return ratio;
         }
 
-        public static void ExtractAll(string archivePath, string outputDirectory, CancellationToken token)
+        public static void ExtractAll(string archivePath, string outputDirectory, CancellationToken token, string password = null)
         {
-            using (var fs = new FileStream(archivePath, FileMode.Open, FileAccess.Read))
-            using (var reader = new BinaryReader(fs))
+            byte[] data = EncryptionUtils.ReadData(archivePath, password);
+            using (var ms = new MemoryStream(data))
+            using (var reader = new BinaryReader(ms))
             {
                 int count = reader.ReadInt32();
                 for (int i = 0; i < count; i++)
@@ -41,18 +44,19 @@ namespace SmartArchiver.Compression
             }
         }
 
-        public static void ExtractFile(string archivePath, string fileName, string outputDirectory, CancellationToken token)
+        public static void ExtractFile(string archivePath, string fileName, string outputDirectory, CancellationToken token, string password = null)
         {
-            using (var fs = new FileStream(archivePath, FileMode.Open, FileAccess.Read))
-            using (var reader = new BinaryReader(fs))
+            byte[] data = EncryptionUtils.ReadData(archivePath, password);
+            using (var ms = new MemoryStream(data))
+            using (var reader = new BinaryReader(ms))
             {
                 int count = reader.ReadInt32();
                 for (int i = 0; i < count; i++)
                 {
                     token.ThrowIfCancellationRequested();
-                    long posBefore = fs.Position;
+                    long posBefore = ms.Position;
                     string name = reader.ReadString();
-                    fs.Position = posBefore;
+                    ms.Position = posBefore;
                     if (name == fileName)
                     {
                         ShannonFanoCodec.DecompressFile(reader, outputDirectory, fileName, token);
@@ -65,19 +69,20 @@ namespace SmartArchiver.Compression
                 }
             }
         }
-        public static List<string> GetFileNames(string archivePath)
+        public static List<string> GetFileNames(string archivePath, string password = null)
         {
             var names = new List<string>();
-            using (var fs = new FileStream(archivePath, FileMode.Open, FileAccess.Read))
-            using (var reader = new BinaryReader(fs))
+            byte[] data = EncryptionUtils.ReadData(archivePath, password);
+            using (var ms = new MemoryStream(data))
+            using (var reader = new BinaryReader(ms))
             {
                 int count = reader.ReadInt32();
                 for (int i = 0; i < count; i++)
                 {
-                    long posBefore = fs.Position;
+                    long posBefore = ms.Position;
                     string name = reader.ReadString();
                     names.Add(name);
-                    fs.Position = posBefore;
+                    ms.Position = posBefore;
                     SkipEntry(reader);
                 }
             }

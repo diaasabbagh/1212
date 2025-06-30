@@ -73,15 +73,16 @@ namespace SmartArchiver
                     cancelButton.Enabled = true;
                     try
                     {
+                        string pwd = optionsForm.Password;
                         double ratio = await Task.Run(() =>
                         {
                             if (optionsForm.SelectedMethod == "Huffman")
                             {
-                                return HuffmanArchive.CompressFiles(files, archiveName + ".huff", _tokenSource.Token);
+                                return HuffmanArchive.CompressFiles(files, archiveName + ".huff", _tokenSource.Token, pwd);
                             }
                             else
                             {
-                                return ShannonFanoArchive.CompressFiles(files, archiveName + ".shfn", _tokenSource.Token);
+                                return ShannonFanoArchive.CompressFiles(files, archiveName + ".shfn", _tokenSource.Token, pwd);
                             }
                         });
                         MessageBox.Show($"Compression complete. Ratio: {ratio:F2}%", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -126,13 +127,30 @@ namespace SmartArchiver
                             _tokenSource = new CancellationTokenSource();
                             cancelButton.Enabled = true; List<string> filenames;
                             string extList = Path.GetExtension(ofd.FileName).ToLowerInvariant();
+                            string password = null;
+                            if (EncryptionUtils.IsEncrypted(ofd.FileName))
+                            {
+                                using (var pf = new PasswordForm())
+                                {
+                                    if (pf.ShowDialog() == DialogResult.OK)
+                                    {
+                                        password = pf.Password;
+                                    }
+                                    else
+                                    {
+                                        cancelButton.Enabled = false;
+                                        _tokenSource = null;
+                                        return;
+                                    }
+                                }
+                            }
                             if (extList == ".huff")
                             {
-                                filenames = HuffmanArchive.GetFileNames(ofd.FileName);
+                                filenames = HuffmanArchive.GetFileNames(ofd.FileName, password);
                             }
                             else
                             {
-                                filenames = ShannonFanoArchive.GetFileNames(ofd.FileName);
+                                filenames = ShannonFanoArchive.GetFileNames(ofd.FileName, password);
                             }
                             using (var optionsForm = new Form3()) {
                                 optionsForm.LoadFileNames(filenames);
@@ -147,11 +165,11 @@ namespace SmartArchiver
                                                 string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();
                                                 if (ext == ".huff")
                                                 {
-                                                    HuffmanArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, _tokenSource.Token);
+                                                    HuffmanArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, _tokenSource.Token, password);
                                                 }
                                                 else
                                                 {
-                                                    ShannonFanoArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, _tokenSource.Token);
+                                                    ShannonFanoArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, _tokenSource.Token, password);
                                                 }
                                             });
                                             MessageBox.Show("Extraction complete.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -177,11 +195,11 @@ namespace SmartArchiver
                                                     string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();
                                                     if (ext == ".huff")
                                                     {
-                                                        HuffmanArchive.ExtractFile(ofd.FileName, selectedFile, fbd.SelectedPath, _tokenSource.Token);
+                                                        HuffmanArchive.ExtractFile(ofd.FileName, selectedFile, fbd.SelectedPath, _tokenSource.Token, password);
                                                     }
                                                     else
                                                     {
-                                                        ShannonFanoArchive.ExtractFile(ofd.FileName, selectedFile, fbd.SelectedPath, _tokenSource.Token);
+                                                        ShannonFanoArchive.ExtractFile(ofd.FileName, selectedFile, fbd.SelectedPath, _tokenSource.Token, password);
                                                     }
                                                 });
                                                 MessageBox.Show("Extraction complete.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
