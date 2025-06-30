@@ -10,9 +10,11 @@ namespace SmartArchiver.Compression
         {
             token.ThrowIfCancellationRequested();
             byte[] data = File.ReadAllBytes(inputPath);
+            token.ThrowIfCancellationRequested();
             var tree = new HuffmanTree();
             var freq = tree.Build(data);
-            var compressed = tree.Encode(data, out int bitLength);
+            token.ThrowIfCancellationRequested();
+            var compressed = tree.Encode(data, out int bitLength, token);
 
             writer.Write(entryName);
             writer.Write(data.Length);
@@ -49,7 +51,7 @@ namespace SmartArchiver.Compression
                 return;
             }
             var tree = new HuffmanTree();
-            byte[] data = tree.Decode(compData, bitLength, freq);
+            byte[] data = tree.Decode(compData, bitLength, freq, token);
             string outPath = Path.Combine(outputDirectory, name);
             string dir = Path.GetDirectoryName(outPath);
             if (!string.IsNullOrEmpty(dir))

@@ -69,24 +69,37 @@ namespace SmartArchiver.Compression
 
         public Dictionary<byte, string> Codes => _codes;
 
-        public byte[] Encode(byte[] data, out int bitLength)
+        public byte[] Encode(byte[] data, out int bitLength, System.Threading.CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();   
             var bits = new List<bool>();
             foreach (byte b in data)
             {
+                token.ThrowIfCancellationRequested();
                 string code = _codes[b];
                 foreach (char c in code)
+                {
+                    token.ThrowIfCancellationRequested();
                     bits.Add(c == '1');
+                }
             }
+            token.ThrowIfCancellationRequested();
             bitLength = bits.Count;
             int padding = (8 - bits.Count % 8) % 8;
-            for (int i = 0; i < padding; i++) bits.Add(false);
+            for (int i = 0; i < padding; i++)
+            {
+
+                token.ThrowIfCancellationRequested();
+                bits.Add(false);
+            }
             byte[] bytes = new byte[bits.Count / 8];
             for (int i = 0; i < bytes.Length; i++)
             {
+                token.ThrowIfCancellationRequested();
                 byte val = 0;
                 for (int j = 0; j < 8; j++)
                 {
+                    token.ThrowIfCancellationRequested();
                     if (bits[i * 8 + j]) val |= (byte)(1 << (7 - j));
                 }
                 bytes[i] = val;
@@ -94,7 +107,7 @@ namespace SmartArchiver.Compression
             return bytes;
         }
 
-        public byte[] Decode(byte[] data, int bitLength, Dictionary<byte, int> freq)
+        public byte[] Decode(byte[] data, int bitLength, Dictionary<byte, int> freq, System.Threading.CancellationToken token)
         {
             if (_root == null)
             {
@@ -107,6 +120,7 @@ namespace SmartArchiver.Compression
             var bits = new List<bool>();
             for (int i = 0; i < data.Length; i++)
             {
+                token.ThrowIfCancellationRequested();
                 for (int j = 0; j < 8; j++)
                 {
                     bool bit = (data[i] & (1 << (7 - j))) != 0;
@@ -119,6 +133,7 @@ namespace SmartArchiver.Compression
             ShannonFanoNode current = _root;
             foreach (bool bit in bits)
             {
+                token.ThrowIfCancellationRequested();
                 current = bit ? current.Right : current.Left;
                 if (current.IsLeaf)
                 {

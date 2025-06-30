@@ -18,6 +18,7 @@ namespace SmartArchiver.Compression
                 writer.Write(allFiles.Count);
                 foreach (var file in allFiles)
                 {
+                    token.ThrowIfCancellationRequested();
                     HuffmanCodec.CompressFile(file.path, file.entryName, writer, token);
                 }
             }

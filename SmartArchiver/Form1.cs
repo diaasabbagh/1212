@@ -6,6 +6,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using SmartArchiver.Compression;
@@ -14,6 +15,7 @@ namespace SmartArchiver
 {
     public partial class Form1 : Form
     {
+        private CancellationTokenSource _tokenSource;
         public Form1()
         {
             InitializeComponent();
@@ -43,7 +45,7 @@ namespace SmartArchiver
 
         }
 
-        private void button3_Click(object sender, EventArgs e)
+        private async void button3_Click(object sender, EventArgs e)
         {
             if (listBox1.Items.Count == 0)
             {
@@ -59,18 +61,21 @@ namespace SmartArchiver
                     string archiveName = optionsForm.ArchiveName;
                     var selectedItems = listBox1.Items.Cast<string>().ToList();
                     var files = ExpandFileList(selectedItems);
-                    var tokenSource = new System.Threading.CancellationTokenSource();
+                    _tokenSource = new CancellationTokenSource();
+                    cancelButton.Enabled = true;
                     try
                     {
-                        double ratio;
-                        if (optionsForm.SelectedMethod == "Huffman")
+                        double ratio = await Task.Run(() =>
                         {
-                            ratio = HuffmanArchive.CompressFiles(files, archiveName + ".huff", tokenSource.Token);
-                        }
-                        else
-                        {
-                            ratio = ShannonFanoArchive.CompressFiles(files, archiveName + ".shfn", tokenSource.Token);
-                        }
+                            if (optionsForm.SelectedMethod == "Huffman")
+                            {
+                                return HuffmanArchive.CompressFiles(files, archiveName + ".huff", _tokenSource.Token);
+                            }
+                            else
+                            {
+                                return ShannonFanoArchive.CompressFiles(files, archiveName + ".shfn", _tokenSource.Token);
+                            }
+                        });
                         MessageBox.Show($"Compression complete. Ratio: {ratio:F2}%", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     catch (OperationCanceledException)
@@ -80,6 +85,11 @@ namespace SmartArchiver
                     catch (Exception ex)
                     {
                         MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    finally
+                    {
+                        cancelButton.Enabled = false;
+                        _tokenSource = null;
                     }
                 }
             }
@@ -94,7 +104,7 @@ namespace SmartArchiver
             }
         }
 
-        private void button2_Click(object sender, EventArgs e)
+        private async void button2_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog ofd = new OpenFileDialog())
             {
@@ -105,8 +115,8 @@ namespace SmartArchiver
                     {
                         if (fbd.ShowDialog() == DialogResult.OK)
                         {
-                            var tokenSource = new System.Threading.CancellationTokenSource();
-                            List<string> filenames;
+                            _tokenSource = new CancellationTokenSource();
+                            cancelButton.Enabled = true; List<string> filenames;
                             string extList = Path.GetExtension(ofd.FileName).ToLowerInvariant();
                             if (extList == ".huff")
                             {
@@ -124,15 +134,18 @@ namespace SmartArchiver
                                     if(action == "ExtractAll") {
                                         try
                                         {
-                                            string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();
-                                            if (ext == ".huff")
+                                            await Task.Run(() =>
                                             {
-                                                HuffmanArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, tokenSource.Token);
-                                            }
-                                            else
-                                            {
-                                                ShannonFanoArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, tokenSource.Token);
-                                            }
+                                                string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();
+                                                if (ext == ".huff")
+                                                {
+                                                    HuffmanArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, _tokenSource.Token);
+                                                }
+                                                else
+                                                {
+                                                    ShannonFanoArchive.ExtractAll(ofd.FileName, fbd.SelectedPath, _tokenSource.Token);
+                                                }
+                                            });
                                             MessageBox.Show("Extraction complete.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
                                         }
                                         catch (OperationCanceledException)
@@ -151,16 +164,18 @@ namespace SmartArchiver
                                         {
                                             try
                                             {
-                                                string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();
-                                                if (ext == ".huff")
+                                                await Task.Run(() =>
                                                 {
-                                                    HuffmanArchive.ExtractFile(ofd.FileName, selectedFile, fbd.SelectedPath, tokenSource.Token);
-                                                }
-
-                                                else
-                                                {
-                                                    ShannonFanoArchive.ExtractFile(ofd.FileName, selectedFile, fbd.SelectedPath, tokenSource.Token);
-                                                }
+                                                    string ext = Path.GetExtension(ofd.FileName).ToLowerInvariant();
+                                                    if (ext == ".huff")
+                                                    {
+                                                        HuffmanArchive.ExtractFile(ofd.FileName, selectedFile, fbd.SelectedPath, _tokenSource.Token);
+                                                    }
+                                                    else
+                                                    {
+                                                        ShannonFanoArchive.ExtractFile(ofd.FileName, selectedFile, fbd.SelectedPath, _tokenSource.Token);
+                                                    }
+                                                });
                                                 MessageBox.Show("Extraction complete.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
                                             }
                                             catch (OperationCanceledException)
@@ -177,6 +192,8 @@ namespace SmartArchiver
                                             MessageBox.Show("Please select a file to extract.", "No file selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                                         }
                                     }
+                                    cancelButton.Enabled = false;
+                                    _tokenSource = null;
                                 }
                             }
                         }
@@ -199,6 +216,10 @@ namespace SmartArchiver
                     listBox1.Items.Add(dialog.SelectedPath);
                 }
             }
+        }
+        private void cancelButton_Click(object sender, EventArgs e)
+        {
+            _tokenSource?.Cancel();
         }
 
         private List<(string path, string entryName)> ExpandFileList(List<string> items)
